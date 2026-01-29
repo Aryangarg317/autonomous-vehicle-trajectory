@@ -52,4 +52,4 @@ Thumbs.db
 # Test files (keep test_input.jpg but ignore other test outputs)
 *.mp4
 *.avi
-
+*.webm
