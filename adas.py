@@ -116,7 +116,7 @@ def estimate_distance(bbox_width):
 def process_video(source=0):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # UPGRADED: Using a smarter model. It will auto-download 'yolov8s.pt' on first run.
-    model_path = os.path.join(script_dir, 'yolov8s.pt') 
+    model_path = os.path.join(script_dir, 'yolov8m.pt') 
     model = YOLO(model_path) 
     
     # Enable CUDA for your RTX 4050
@@ -134,7 +134,7 @@ def process_video(source=0):
 
     # Setup Fullscreen
     cv2.namedWindow('ADAS Project - Live Feed', cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty('ADAS Project - Live Feed', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    ##cv2.setWindowProperty('ADAS Project - Live Feed', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
