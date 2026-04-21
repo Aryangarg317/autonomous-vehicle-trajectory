@@ -1,159 +1,124 @@
 # Autonomous Vehicle Trajectory & Basic ADAS
 
-An integrated lane detection and vehicle tracking system developed as a final-year B.Tech CSE AI/ML Major Project. This system provides real-time spatial awareness and Advanced Driver Assistance System (ADAS) capabilities using a hybrid approach of traditional computer vision and deep learning.
+An advanced, real-time Advanced Driver Assistance System (ADAS) developed in Python. This project combines traditional Computer Vision (OpenCV) with Deep Learning (YOLOv8 Medium) to provide high-fidelity lane tracking, spatial awareness, and dynamic driver collision warnings at 1080p resolution.
 
-## 🚀 Features
+Designed for high-performance execution, this system leverages NVIDIA CUDA acceleration, Exponential Moving Average (EMA) smoothing, and perspective-corrected spatial math.
 
-### Lane Detection
-- **Hough Transform** - Traditional computer vision approach using OpenCV.
-- **Dynamic Vehicle Masking** - Blinds the lane detector to bounding boxes to prevent vehicle bumpers from being calculated as road lines.
-- **HLS Color Space Filtering** - Superior shadow and glare resistance compared to standard RGB.
+---
 
-### Object Detection & Tracking
-- **YOLOv8s (Ultralytics)** - High-speed, accurate real-time object detection (Cars, Trucks, Pedestrians).
-- **Hardware-Accelerated Inference** - Direct CUDA offloading for high-framerate processing.
+## 🚀 Key Features
 
-### Distance Estimation
-- **Monocular Vision** - Single-camera distance estimation using the Pinhole Camera Model and similar triangles math.
+### 🛣️ Advanced Lane Detection & Tracking
+* **1080p High-Definition Processing:** Native 1920x1080 processing pipeline for maximum precision.
+* **HLS Color Space Filtering:** Superior shadow and glare resistance compared to standard RGB.
+* **Dynamic Vehicle Masking:** Automatically blinds the lane detector to YOLO bounding boxes, preventing vehicle bumpers from being mistakenly calculated as road lines.
+* **EMA Smoothing (Exponential Moving Average):** Eliminates micro-jitters in lane tracking by applying a mathematical shock absorber to the lane coordinates across frames.
+* **Robust Lane Departure Warning (LDW):** Tracks the vehicle's drift offset against the smoothed lane center. Triggers an alert if the vehicle drifts beyond a safely tuned 135-pixel threshold.
 
-### ADAS Computation
-- **Lane Departure Warning (LDW)** - Drift offset calculation comparing the vehicle center to the lane's mathematical midpoint.
-- **Forward Collision Warning (FCW)** - Predictive alerts triggered when obstacles breach a 5.0m threshold within the active lane trajectory.
+### 🚗 Object Detection & Depth Perception
+* **YOLOv8 Medium (Ultralytics):** Utilizes `yolov8m.pt` for highly accurate, real-time detection of vehicles and pedestrians.
+* **Monocular Distance Estimation:** Calculates the distance to objects using the Pinhole Camera Model (Focal Length × Real Width / Pixel Width).
+* **Perspective-Corrected Lane Association:** Mathematically calculates the lane width at the *exact depth (Y-coordinate)* of a detected vehicle. This completely prevents false alarms from oncoming traffic or cars in adjacent lanes.
 
-## 📋 Requirements
+### ⚠️ Dynamic Collision Engine (FCW)
+* **Relative Speed Tracking:** Remembers previous frame distances to calculate the closing speed of targets.
+* **Sudden Braking Alert:** Triggers if a vehicle ahead (under 50m) suddenly closes the distance rapidly (> 0.5m per frame).
+* **Imminent Collision Alert:** Triggers a critical warning if an object enters the absolute danger zone (< 20m) and is not actively pulling away.
 
-```bash
-pip install opencv-python numpy ultralytics
-```
+### 🔊 3-Profile Audio Alert System
+Utilizes asynchronous threading to play distinct, real-world ADAS audio cues without freezing the video feed:
+* **LDW (Rumble Strips):** 3 rapid, low-frequency bursts simulating grooved pavement.
+* **Sudden Braking (Attention Chime):** 2 crisp, mid-tone beeps to draw the driver's eyes forward.
+* **Imminent Collision (Panic Alarm):** 5 extremely rapid, high-pitched piercing shrieks.
 
-### Core Dependencies
-- Python 3.10+
-- OpenCV (`cv2`)
-- NumPy (`np`)
-- PyTorch (CUDA 12.1 build required for GPU)
-- Ultralytics (YOLOv8)
+---
 
-## 🛠️ Installation
+## 🛠️ Technology Stack
 
-1. Clone the repository:
+* **Language:** Python 3.10+
+* **Computer Vision:** OpenCV (`cv2`)
+* **Deep Learning:** Ultralytics (YOLOv8), PyTorch
+* **Math & Matrices:** NumPy (`numpy`)
+* **Audio/Threading:** Built-in `winsound` (Windows), `threading`, `time`
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Clone the Repository
 ```bash
 git clone <your-repo-url>
-cd autonomous-vehicle-trajectory
+cd major_project
 ```
 
-2. Install standard dependencies:
+### 2. Install Standard Dependencies
 ```bash
 pip install opencv-python numpy ultralytics
 ```
 
-3. Enable GPU Acceleration (CRITICAL for NVIDIA GPUs):
-First, remove the default CPU-only PyTorch:
+### 3. Enable GPU Acceleration (Crucial for RTX Cards)
+To run the YOLOv8 Medium model smoothly at 1080p, you **must** configure PyTorch to use your NVIDIA GPU (CUDA).
+First, uninstall any default CPU-only PyTorch versions:
 ```bash
 pip uninstall torch torchvision torchaudio -y
 ```
-Then, install the CUDA 12.1 specific version:
+Then, install the CUDA-specific version (Make sure you have NVIDIA drivers installed):
 ```bash
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
-## 💻 Usage
+---
 
-### Video Processing (Default)
+## 🚦 Usage
 
-```python
-from adas import process_video
-
-# Process a pre-recorded highway POV video
-if __name__ == "__main__":
-    process_video(source='./video/car.mp4')
-```
-
-### Webcam Live Processing
-
-```python
-from adas import process_video
-
-# 0 for default laptop webcam, 1 for external USB webcam
-if __name__ == "__main__":
-    process_video(source=0) 
-```
-
-To run the system from the terminal:
+### Running the System
+The system is configured to capture native 1080p video from your primary webcam. 
 ```bash
 python adas.py
 ```
 
-## 📊 Output Format
+### Video File Feed (Testing)
+To test the system on a recorded highway POV video, modify the `__main__` block at the bottom of `adas.py`:
+```python
+if __name__ == "__main__":
+    process_video(source='./path_to_your_video.mp4')
+```
 
-The `process_video()` loop renders a live, annotated `cv2.imshow` window containing:
+---
 
-- **Lane Lines:** Filled polygon overlay (Green) indicating the safe drivable path.
-- **Bounding Boxes:** YOLOv8 boxes (Green/Red) with Class, Confidence, and Estimated Distance.
-- **Telemetry Text:** Live "Lane Drift: X px" counter in the top left.
-- **Alert Overlays:** Flashing red "WARNING: LANE DEPARTURE" and "COLLISION WARNING" text triggers.
+## 📐 Calibration Notes
 
-## 🏗️ Architecture
+* **Camera Resolution:** The code strictly enforces `1920x1080`. If your webcam does not support 1080p, OpenCV will default to a lower resolution, which will offset the LDW mathematical thresholds. 
+* **Focal Length:** The distance estimation currently uses a generic `focal_length = 800`. For real-world accuracy, calculate the specific focal length of your webcam lens and update this variable in the `estimate_distance()` function.
+* **Audio:** The `winsound` library is native to Windows. If running on Linux/macOS, this will need to be swapped for a cross-platform library like `pygame.mixer`.
+
+---
+
+## 🏗️ Architecture Flow
 
 ```text
 AutonomousVehicleADAS
 │
-├── ObjectDetector (YOLOv8s)
-│   └── CUDA Hardware Offload
+├── 1. Frame Capture (1080p)
 │
-├── LaneDetector
-│   ├── HLS Color Space Conversion
-│   ├── Dynamic Vehicle Masking
-│   ├── Canny Edge Detection
-│   ├── Polygonal ROI Cropping
-│   └── Hough Transform (Linear Mapping)
+├── 2. ObjectDetector (YOLOv8m - FP16 CUDA)
+│   └── Outputs Bounding Boxes & Distance Estimates
 │
-├── DistanceEstimator
-│   └── Monocular Vision (Pinhole Model)
+├── 3. LaneDetector
+│   ├── Dynamic Vehicle Masking (Blacks out YOLO boxes)
+│   ├── HLS Color Space & Canny Edge Detection
+│   ├── Hough Transform (Linear Mapping)
+│   └── Exponential Moving Average (EMA) Smoothing
 │
-└── ADAS_DecisionEngine
-    ├── Lane Center vs Frame Center (LDW)
-    └── Bounding Box Coordinates vs Lane Coordinates (FCW)
+└── 4. ADAS_DecisionEngine
+    ├── LDW: Compares smoothed lane center to frame center.
+    ├── Perspective Check: Is the object inside our lane at its specific depth?
+    ├── Speed Check: Compare current distance vs previous distance.
+    └── Audio/Visual Trigger: Fires async threading for alerts.
 ```
 
-## 📝 Components
-
-### 1. Lane Detection
-- **Hough Transform:** Classical edge-based detection tuned for faded/worn paint lines on standard roads.
-- **Dynamic Masking:** Feeds YOLO coordinates back into the OpenCV pipeline to black out cars before edge detection occurs.
-
-### 2. Object Detection
-- **YOLOv8 Small:** Chosen as the perfect balance between the lightweight 'Nano' model and heavier models, running real-time tracking of relevant road hazards.
-
-### 3. Distance Estimation
-- **Monocular:** Focal length-based estimation. Requires initial calibration of the `focal_length` variable based on the specific camera hardware in use.
-
-### 4. ADAS Computation
-- **LDW:** Triggers when lane drift exceeds 50 pixels.
-- **FCW:** Triggers when distance < 5.0m AND the object's X-coordinates fall within the current lane boundaries.
-
-## 🎯 Performance Optimizations
-
-- **NVIDIA GPU Integration:** Tested and optimized for Asus TUF F15 architecture (RTX 4050 6GB VRAM, i7-13620H, 16GB DDR5).
-- **Tensor Offloading:** PyTorch CUDA implementation forces all YOLO matrix calculations to the GPU.
-- **Absolute Pathing:** `os.path` integration prevents redundant downloading of YOLO weights.
-
-## 📸 Sample Output
-
-The system generates an annotated live feed with:
-- ✅ Detected lane drivable area (green polygon)
-- ✅ Tracked vehicles with dynamic distance counters
-- ✅ Visual collision and departure warnings
-- ✅ Real-time lane drift pixel tracking
-
 ## 🤝 Contributing
-
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
-
 This project is open source and available under the MIT License.
-
-## 🙏 Acknowledgments
-
-- Ultralytics for the YOLOv8 architecture.
-- OpenCV community for extensive Hough Line documentation.
