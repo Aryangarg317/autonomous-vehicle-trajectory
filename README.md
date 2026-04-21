@@ -242,4 +242,48 @@ For questions or support, please open an issue in the repository.
 ---
 
 **Note**: For deep learning models (SCNN/LaneNet), you'll need to provide pretrained weights. The system works out-of-the-box with Hough Transform for lane detection.
+## ADAS.py working
+2. Install Standard Dependencies
+Bash
+pip install opencv-python numpy ultralytics
+3. Enable GPU Acceleration (Crucial for Performance)
+To run this smoothly at 30+ FPS, you must configure PyTorch to use your NVIDIA GPU.
+First, uninstall any default CPU-only PyTorch versions:
 
+Bash
+pip uninstall torch torchvision torchaudio -y
+Then, install the CUDA 12.1 specific version (Make sure you have NVIDIA drivers installed):
+
+Bash
+pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu121](https://download.pytorch.org/whl/cu121)
+🚦 Usage
+You can run the system using a live webcam feed or a pre-recorded video file.
+
+Live Webcam Feed
+Ensure your webcam is plugged in. By default, the script looks for the primary camera (source=0).
+
+Bash
+python adas.py
+Video File Feed
+To test the system on a recorded highway POV video, modify the __main__ block at the bottom of adas.py:
+
+Python
+if __name__ == "__main__":
+    process_video(source='./path_to_your_video.mp4')
+📐 Calibration (Important)
+The distance estimation relies on a calibrated focal length. Since every camera lens is different, you may need to adjust the focal_length variable in the estimate_distance() function.
+
+Formula used:
+Distance = (Real Width * Focal Length) / Pixel Bounding Box Width
+
+Currently set to:
+
+Python
+focal_length = 800  # Adjust this based on your specific camera hardware
+known_width = 1.8   # Average vehicle width in meters
+🔮 Future Scope
+Perspective Warp (Bird's Eye View): Upgrading the Hough Lines pipeline to fit 2nd-degree polynomials for accurate tracking of sharp curves.
+
+Audio Alerts: Integrating a lightweight audio library for audible LDW and FCW chimes.
+
+Night Mode: Tuning the color thresholds (HSL) and Canny edge parameters dynamically for low-light driving conditions.
