@@ -1,245 +1,124 @@
-# Autonomous Vehicle Trajectory Computation System
+# Autonomous Vehicle Trajectory & Basic ADAS
 
-An integrated lane detection and vehicle tracking system for self-driving cars with advanced trajectory computation capabilities.
+An advanced, real-time Advanced Driver Assistance System (ADAS) developed in Python. This project combines traditional Computer Vision (OpenCV) with Deep Learning (YOLOv8 Medium) to provide high-fidelity lane tracking, spatial awareness, and dynamic driver collision warnings at 1080p resolution.
 
-## 🚀 Features
+Designed for high-performance execution, this system leverages NVIDIA CUDA acceleration, Exponential Moving Average (EMA) smoothing, and perspective-corrected spatial math.
 
-### Lane Detection
-- **Hough Transform** - Traditional computer vision approach
-- **Spatial CNN (SCNN)** - Deep learning with spatial message passing
-- **LaneNet** - Instance segmentation for multi-lane detection
-- Support for combined detection methods
+---
 
-### Object Detection & Tracking
-- **YOLOv3-based** object detection
-- **DeepSORT-like** tracking algorithm
-- Real-time multi-object tracking with trajectory prediction
+## 🚀 Key Features
 
-### Distance Estimation
-- **Monocular vision** - Single camera distance estimation
-- **Stereo vision** - Dual camera depth perception
-- **LiDAR integration** - Support for LiDAR distance data
+### 🛣️ Advanced Lane Detection & Tracking
+* **1080p High-Definition Processing:** Native 1920x1080 processing pipeline for maximum precision.
+* **HLS Color Space Filtering:** Superior shadow and glare resistance compared to standard RGB.
+* **Dynamic Vehicle Masking:** Automatically blinds the lane detector to YOLO bounding boxes, preventing vehicle bumpers from being mistakenly calculated as road lines.
+* **EMA Smoothing (Exponential Moving Average):** Eliminates micro-jitters in lane tracking by applying a mathematical shock absorber to the lane coordinates across frames.
+* **Robust Lane Departure Warning (LDW):** Tracks the vehicle's drift offset against the smoothed lane center. Triggers an alert if the vehicle drifts beyond a safely tuned 135-pixel threshold.
 
-### Trajectory Computation
-- Safe path planning based on lane detection
-- Obstacle avoidance with predictive trajectories
-- Dynamic waypoint generation
-- Curvature-aware path smoothing
+### 🚗 Object Detection & Depth Perception
+* **YOLOv8 Medium (Ultralytics):** Utilizes `yolov8m.pt` for highly accurate, real-time detection of vehicles and pedestrians.
+* **Monocular Distance Estimation:** Calculates the distance to objects using the Pinhole Camera Model (Focal Length × Real Width / Pixel Width).
+* **Perspective-Corrected Lane Association:** Mathematically calculates the lane width at the *exact depth (Y-coordinate)* of a detected vehicle. This completely prevents false alarms from oncoming traffic or cars in adjacent lanes.
 
-## 📋 Requirements
+### ⚠️ Dynamic Collision Engine (FCW)
+* **Relative Speed Tracking:** Remembers previous frame distances to calculate the closing speed of targets.
+* **Sudden Braking Alert:** Triggers if a vehicle ahead (under 50m) suddenly closes the distance rapidly (> 0.5m per frame).
+* **Imminent Collision Alert:** Triggers a critical warning if an object enters the absolute danger zone (< 20m) and is not actively pulling away.
 
-```bash
-pip install -r requirements.txt
-```
+### 🔊 3-Profile Audio Alert System
+Utilizes asynchronous threading to play distinct, real-world ADAS audio cues without freezing the video feed:
+* **LDW (Rumble Strips):** 3 rapid, low-frequency bursts simulating grooved pavement.
+* **Sudden Braking (Attention Chime):** 2 crisp, mid-tone beeps to draw the driver's eyes forward.
+* **Imminent Collision (Panic Alarm):** 5 extremely rapid, high-pitched piercing shrieks.
 
-### Core Dependencies
-- Python 3.7+
-- OpenCV (cv2)
-- NumPy
-- PyTorch (optional, for deep learning models)
-- torchvision (optional, for deep learning models)
+---
 
-## 🛠️ Installation
+## 🛠️ Technology Stack
 
-1. Clone the repository:
+* **Language:** Python 3.10+
+* **Computer Vision:** OpenCV (`cv2`)
+* **Deep Learning:** Ultralytics (YOLOv8), PyTorch
+* **Math & Matrices:** NumPy (`numpy`)
+* **Audio/Threading:** Built-in `winsound` (Windows), `threading`, `time`
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Clone the Repository
 ```bash
 git clone <your-repo-url>
 cd major_project
 ```
 
-2. Install dependencies:
+### 2. Install Standard Dependencies
 ```bash
-pip install opencv-python numpy torch torchvision
+pip install opencv-python numpy ultralytics
 ```
 
-3. Run the system:
+### 3. Enable GPU Acceleration (Crucial for RTX Cards)
+To run the YOLOv8 Medium model smoothly at 1080p, you **must** configure PyTorch to use your NVIDIA GPU (CUDA).
+First, uninstall any default CPU-only PyTorch versions:
 ```bash
-python "major project.py"
+pip uninstall torch torchvision torchaudio -y
 ```
-
-## 💻 Usage
-
-### Basic Usage
-
-```python
-from major_project import AutonomousVehiclePipeline
-
-# Initialize pipeline with Hough Transform (default)
-pipeline = AutonomousVehiclePipeline(lane_detection_method='hough')
-
-# Process a single image
-import cv2
-image = cv2.imread('your_image.jpg')
-ego_state = {'speed': 50.0, 'position': (320, 400)}
-results = pipeline.process_frame(image, ego_state)
-
-# Display results
-cv2.imshow('Result', results['annotated_frame'])
-cv2.waitKey(0)
+Then, install the CUDA-specific version (Make sure you have NVIDIA drivers installed):
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
-
-### Using Deep Learning Models
-
-```python
-# Use SCNN for lane detection
-pipeline_scnn = AutonomousVehiclePipeline(
-    lane_detection_method='scnn',
-    scnn_weights='path/to/scnn_weights.pth'
-)
-
-# Use LaneNet for lane detection
-pipeline_lanenet = AutonomousVehiclePipeline(
-    lane_detection_method='lanenet',
-    lanenet_weights='path/to/lanenet_weights.pth'
-)
-
-# Combine all methods
-pipeline_all = AutonomousVehiclePipeline(
-    lane_detection_method='all'
-)
-```
-
-### Video Processing
-
-```python
-cap = cv2.VideoCapture('video.mp4')
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    results = pipeline.process_frame(frame)
-    cv2.imshow('Output', results['annotated_frame'])
-    
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-```
-
-### Webcam Live Processing
-
-```python
-cap = cv2.VideoCapture(0)  # 0 for default webcam
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    results = pipeline.process_frame(frame)
-    cv2.imshow('Live Output', results['annotated_frame'])
-    
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-```
-
-## 📊 Output Format
-
-The `process_frame()` method returns a dictionary containing:
-
-```python
-{
-    'lane_lines': List[Tuple],           # Detected lane line coordinates
-    'lane_curvature': float,              # Lane curvature value
-    'detections': List[Dict],             # Raw object detections
-    'tracked_objects': List[Dict],        # Tracked objects with IDs
-    'distances': Dict[int, float],        # Distance estimates per object
-    'trajectory': Dict,                   # Computed trajectory with waypoints
-    'annotated_frame': np.ndarray        # Annotated visualization
-}
-```
-
-## 🏗️ Architecture
-
-```
-AutonomousVehiclePipeline
-│
-├── LaneDetector
-│   ├── Hough Transform
-│   ├── Spatial CNN (SCNN)
-│   └── LaneNet
-│
-├── ObjectDetector (YOLOv3)
-│
-├── ObjectTracker (DeepSORT-like)
-│
-├── DistanceEstimator
-│   ├── Monocular Vision
-│   ├── Stereo Vision
-│   └── LiDAR
-│
-└── TrajectoryComputer
-    ├── Lane Analysis
-    ├── Obstacle Prediction
-    └── Path Planning
-```
-
-## 📝 Components
-
-### 1. Lane Detection
-- **Hough Transform**: Classical edge-based detection
-- **SCNN**: Spatial convolutions with message passing for continuous lane detection
-- **LaneNet**: Instance segmentation with embedding loss for multi-lane detection
-
-### 2. Object Detection
-- YOLOv3-based real-time object detection
-- Fallback to color-based detection for testing
-
-### 3. Object Tracking
-- IoU-based track association
-- Track lifecycle management
-- Trajectory history tracking
-
-### 4. Distance Estimation
-- Monocular: Focal length-based estimation
-- Stereo: Disparity-based depth calculation
-- LiDAR: Direct 3D distance measurement
-
-### 5. Trajectory Computation
-- Lane-centered path generation
-- Obstacle avoidance with smooth steering
-- Waypoint generation with speed profiles
-
-## 🎯 Performance Optimizations
-
-- Reduced SCNN spatial message passing iterations (4x step size)
-- Optimized waypoint generation (15 waypoints)
-- Simplified visualization rendering
-- Efficient memory management
-
-## 📸 Sample Output
-
-The system generates annotated images with:
-- ✅ Detected lane lines (green)
-- ✅ Tracked vehicles with bounding boxes and IDs
-- ✅ Distance estimates for each object
-- ✅ Predicted trajectory path with waypoints
-- ✅ Direction arrows showing path flow
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 🙏 Acknowledgments
-
-- SCNN Paper: "Spatial As Deep: Spatial CNN for Traffic Scene Understanding"
-- LaneNet Paper: "Towards End-to-End Lane Detection: an Instance Segmentation Approach"
-- YOLOv3: "You Only Look Once v3"
-- DeepSORT: "Simple Online and Realtime Tracking with a Deep Association Metric"
-
-## 📧 Contact
-
-For questions or support, please open an issue in the repository.
 
 ---
 
-**Note**: For deep learning models (SCNN/LaneNet), you'll need to provide pretrained weights. The system works out-of-the-box with Hough Transform for lane detection.
+## 🚦 Usage
 
+### Running the System
+The system is configured to capture native 1080p video from your primary webcam. 
+```bash
+python adas.py
+```
+
+### Video File Feed (Testing)
+To test the system on a recorded highway POV video, modify the `__main__` block at the bottom of `adas.py`:
+```python
+if __name__ == "__main__":
+    process_video(source='./path_to_your_video.mp4')
+```
+
+---
+
+## 📐 Calibration Notes
+
+* **Camera Resolution:** The code strictly enforces `1920x1080`. If your webcam does not support 1080p, OpenCV will default to a lower resolution, which will offset the LDW mathematical thresholds. 
+* **Focal Length:** The distance estimation currently uses a generic `focal_length = 800`. For real-world accuracy, calculate the specific focal length of your webcam lens and update this variable in the `estimate_distance()` function.
+* **Audio:** The `winsound` library is native to Windows. If running on Linux/macOS, this will need to be swapped for a cross-platform library like `pygame.mixer`.
+
+---
+
+## 🏗️ Architecture Flow
+
+```text
+AutonomousVehicleADAS
+│
+├── 1. Frame Capture (1080p)
+│
+├── 2. ObjectDetector (YOLOv8m - FP16 CUDA)
+│   └── Outputs Bounding Boxes & Distance Estimates
+│
+├── 3. LaneDetector
+│   ├── Dynamic Vehicle Masking (Blacks out YOLO boxes)
+│   ├── HLS Color Space & Canny Edge Detection
+│   ├── Hough Transform (Linear Mapping)
+│   └── Exponential Moving Average (EMA) Smoothing
+│
+└── 4. ADAS_DecisionEngine
+    ├── LDW: Compares smoothed lane center to frame center.
+    ├── Perspective Check: Is the object inside our lane at its specific depth?
+    ├── Speed Check: Compare current distance vs previous distance.
+    └── Audio/Visual Trigger: Fires async threading for alerts.
+```
+
+## 🤝 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+This project is open source and available under the MIT License.
